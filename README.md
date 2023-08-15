@@ -1,8 +1,8 @@
 # QC-Cheat
 Quake Champions Wallhack + Aimbot
 
-**
-Introduction:**
+
+# Introduction:
 
 This game hacking stuff is crazy difficult. Quake Champions is on the lower end of the difficulty and I spent tons of hours on this. It was pretty 
 fun to get it working. The code isn't perfect especially in chams.cpp which I largely got from someone else. However, I cannot understate how difficult
@@ -12,8 +12,8 @@ I have had requests from people to make this public so here it is.
 
 
 
-**How to Run:
-**
+# How to Run:
+
 1. See the makefile. I used the nmake program on windows to build the cheat. You should install the appropriate
    cl.exe or Microsoft Compiler program.
 
@@ -40,8 +40,7 @@ it's a long process.
 
 
 
-**
-Video: **
+# Video
 
 This is a clip from my "night of terror". 
 
