@@ -364,7 +364,23 @@ HRESULT __stdcall hook_Present(IDXGISwapChain *pSwapChain, UINT SyncInterval, UI
 			rasterizer_desc.MultisampleEnable = false;
 			rasterizer_desc.AntialiasedLineEnable = false;
 			rasterizer_desc.DepthBias = 0x7FFFFFFF;
-			pDevice->CreateRasterizerState(&rasterizer_desc, &DEPTHBIASState_FALSE);            
+			pDevice->CreateRasterizerState(&rasterizer_desc, &DEPTHBIASState_FALSE);
+
+			//create normal rasterizer state
+			D3D11_RASTERIZER_DESC nrasterizer_desc;
+			ZeroMemory(&nrasterizer_desc, sizeof(nrasterizer_desc));
+			nrasterizer_desc.FillMode = D3D11_FILL_SOLID;
+			nrasterizer_desc.CullMode = D3D11_CULL_NONE;
+			nrasterizer_desc.FrontCounterClockwise = false;
+			nrasterizer_desc.DepthBias = 0;
+			nrasterizer_desc.SlopeScaledDepthBias = 0.0f;
+			nrasterizer_desc.DepthBiasClamp = 0.0f;
+			nrasterizer_desc.DepthClipEnable = true;
+			nrasterizer_desc.ScissorEnable = false;
+			nrasterizer_desc.MultisampleEnable = false;
+			nrasterizer_desc.AntialiasedLineEnable = false;
+			pDevice->CreateRasterizerState(&nrasterizer_desc, &DEPTHBIASState_TRUE);
+             
 			initonce = true;
 		}
         else
@@ -464,7 +480,6 @@ DWORD __stdcall install_chams(LPVOID)
 		return NULL;
 	}
  
-
     pSwapChainVtable = (DWORD_PTR*)pSwapChain;
     pSwapChainVtable = (DWORD_PTR*)pSwapChainVtable[0];
  

@@ -5,7 +5,10 @@
 
 #include "os_util.hpp"
 
-DWORD find_process_id(const std::string &process_name)
+// A DWORD is enough storage to contain any process id. The process_id is passed by reference 
+// because any value of a DWORD can represent a process id. Therefore, there would be no way
+// to differentiate between success and failure if returned from the function.
+int find_process_id(DWORD &process_id, const std::string &process_name)
 {
     PROCESSENTRY32 process_info;
     process_info.dwSize = sizeof(process_info);
@@ -14,13 +17,13 @@ DWORD find_process_id(const std::string &process_name)
     
     if(processes_snapshot == INVALID_HANDLE_VALUE) 
         return 0;
-    
 
     Process32First(processes_snapshot, &process_info);
     if(!process_name.compare(process_info.szExeFile))
     {
         CloseHandle(processes_snapshot);
-        return process_info.th32ProcessID;
+        process_id = process_info.th32ProcessID;
+        return 1;
     }
 
     while(Process32Next(processes_snapshot, &process_info))
@@ -28,15 +31,17 @@ DWORD find_process_id(const std::string &process_name)
         if(!process_name.compare(process_info.szExeFile))
         {
             CloseHandle(processes_snapshot);
-            return process_info.th32ProcessID;
+            process_id = process_info.th32ProcessID;
+            return 1;
         }
     }
-
     CloseHandle(processes_snapshot);
     return 0;
 }
 
 
+// 0x0 cannot be used as an address in a windows program. Therefore, returning an address value of 0
+// indicates failure.
 uintptr_t get_mdle_begin_addr(DWORD process_id, const std::string &module_name) 
 { 
     HANDLE module_handle; 
@@ -99,20 +104,19 @@ int inject_dll(DWORD process_id, std::string path)
 }
 
 
+// This function gets the memory address at the end of a cheat engine pointer chain. It does not
+// get the underlying memory value. mem_read_buffer must be used to read the data at the address.
 
-void mem_read_buffer(uintptr_t begin_addr, void *target_buffer, DWORD num_bytes, HANDLE &h_process)
-{
-    ReadProcessMemory(h_process, (void *) begin_addr, target_buffer, num_bytes, NULL);
-    return;    
-}
+// The largest uintptr_t can also contain largest memory address in a program. Therefore,
+// the number of offsets in a chain can also be represented by a uintptr_t.
+// Also, the largest uintptr_t can represent the largest amount of data in an architecture.
 
-
-
-int mem_read_chain(void *target_buffer, uintptr_t begin_addr, uintptr_t *offset_chain, 
-                   DWORD num_offsets, DWORD data_size)
+// h_process is an optional argument that can be set to null indicating that dll_injection was used
+// and a handle is not necessary.
+int mem_chain_addr_resolve(uintptr_t *addr_buffer, uintptr_t begin_addr, uintptr_t *offset_chain, 
+                           uintptr_t num_offsets, HANDLE h_process)
 {
     uintptr_t new_addr, offset_addr;
-    size_t read_data;
     
     if(num_offsets == 0)
         return 0;
@@ -120,65 +124,40 @@ int mem_read_chain(void *target_buffer, uintptr_t begin_addr, uintptr_t *offset_
     new_addr = begin_addr;
     for(int i = 0; i < num_offsets; i++)
     {
-        uintptr_t offset_addr = new_addr + offset_chain[i];
+        offset_addr = new_addr + offset_chain[i];
         
         // Returns if there is an overflow.
         if(offset_addr < new_addr)
             return 0;
-        if(ReadProcessMemory(GetCurrentProcess(), (LPCVOID) offset_addr, &read_data, 
-           sizeof(size_t *), NULL) == false)
-            return 0;
-        new_addr = (uintptr_t) read_data;
-    }
-    memcpy(target_buffer, &read_data, data_size);
-    return 1;    
-}
-
-
-
-int mem_read_chain_hndl(void *target_buffer, uintptr_t begin_addr, uintptr_t *offset_chain, 
-                        DWORD num_offsets,  DWORD data_size,  HANDLE &h_process)
-{
-    uintptr_t new_addr, offset_addr;
-    size_t read_data;
-    
-    if(num_offsets == 0)
-        return 0;
-    
-    new_addr = begin_addr;
-    for(int i = 0; i < num_offsets; i++)
-    {
-        uintptr_t offset_addr = new_addr + offset_chain[i];
         
-        // Returns if there is an overflow.
-        if(offset_addr < new_addr)
-            return 0;
-    
-        if(ReadProcessMemory(h_process, (LPCVOID) offset_addr, &read_data, sizeof(size_t *), NULL)
-           == false)
-            return 0;
-        new_addr = (uintptr_t) read_data;
+        if(h_process == NULL)
+        {
+            if(mem_read_buffer(&new_addr, offset_addr, sizeof(uintptr_t), NULL) == 0)
+                return 0;
+        }
+        else 
+        {            
+            if(mem_read_buffer(&new_addr, offset_addr, sizeof(uintptr_t), h_process) == 0)
+                return 0;
+        }
     }
-
-    memcpy(target_buffer, &read_data, data_size);
+    (*addr_buffer) = offset_addr;
     return 1;    
 }
 
 
-int mem_write_chain(void *source_buffer, uintptr_t begin_addr, uintptr_t *offset_chain, 
-                    DWORD num_offsets, DWORD data_size)
+// num_bytes is a uintptr_t because uintptr_t can represent the largest memory address. This is
+// also the largest amount of data that can be read.
+int mem_read_buffer(void *target_buffer, uintptr_t addr, uintptr_t num_bytes, HANDLE h_process)
 {
-    uintptr_t write_addr;
+    HANDLE cur_process = h_process;
     
-    // By calling mem_read_chain with num_offsets = num_offsets - 1, write_addr will contain the
-    // address value of the target memory location. Calling mem_read_chain with 
-    // num_offsets = num_offsets will read the value stored at the memory location, not its address. 
-    if(mem_read_chain(&write_addr, begin_addr, offset_chain, num_offsets - 1, 
-       sizeof(uintptr_t)) == 0)
-        return 0;
+    if(h_process == NULL)
+        cur_process = GetCurrentProcess();
     
-    if(WriteProcessMemory(GetCurrentProcess(), (LPVOID) write_addr, (LPCVOID) source_buffer, 
-           sizeof(size_t *), NULL) == false)
+    if(ReadProcessMemory(cur_process, (LPCVOID) addr, target_buffer, num_bytes, 
+       NULL) == false)
         return 0;
     return 1;    
 }
+

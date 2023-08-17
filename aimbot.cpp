@@ -2,31 +2,26 @@
 #include <math.h>
 #include <vector>
 #include <windows.h>
-#include <fstream>
 
 #include "aimbot.hpp"
 #include "opencv2/opencv.hpp"
 #include "offsets.hpp"
 #include "os_util.hpp"
 
-#define CLUSTER_RADIUS 20
 #define FOV_PERCENT_X 0.3
 #define FOV_PERCENT_Y 0.3
+#define PI 3.14159265
 
-static HWND current_window;
 static bool valid_target, assist_on;
 static cv::Point2i top_lft, target, weapon_ind_pt;                 
 static HBITMAP h_bitmap;
 static HDC hdc, h_screen;
 static HGDIOBJ old_obj;
-static HHOOK hook;
 static int x_1, y_1, x_2, y_2, scrn_w, scrn_h, fov_w, fov_h, weapon_scan_ctr;
-static std::ofstream outfile;
 extern HANDLE game_handle;
 enum weapons {MACHINE_GUN, SHOTGUN, NAIL_GUN, TRIBOLT, ROCKET_LAUNCHER, LIGHTNING_GUN, RAIL_GUN};
 extern uintptr_t base_address; 
 static enum weapons current_weapon;
-HHOOK mh;
 
 
 void adj_if_firing()
@@ -43,7 +38,7 @@ void adj_if_firing()
         {
             POINT curs_pos;
             GetCursorPos(&curs_pos);
-            rotate_view_screen_offset(target.x, target.y);
+            move_mouse(target.x, target.y);
         }
                 
         if(current_weapon == SHOTGUN || current_weapon == RAIL_GUN)
@@ -104,9 +99,17 @@ void move_mouse(int amt_x, int amt_y)
 }
 
 
-void rotate_view_screen_offset(int x, int y)
+void rotate_view_screen_offset(int amt_x, int amt_y)
 {
-    float pitch_rotation, yaw_rotation;
+  /*  float cur_pitch_rotation, targ_pitch_rotation, cur_yaw_rotation, targ_yaw_rotation, 
+          cur_pitch_angle;
+    
+    cur_pitch_angle = acos(cur_pitch_rotation);
+    cur_yaw_angle = asin(cur_yaw_rotation);
+    
+    cur_pitch_rotation = sin(cur_pitch_angle + PI * amt_y / scrn_h * 0.5);
+    cur_yaw_rotation = cos(c*/
+ //   if(mem_read_chain(&cur_pitch_rotation, base_address, sizeof(float))
     //18 is positive cosine of pitch_rotation
     //44 is negative cosine of pitch_rotation
     //7 is sin of pitch rotation
@@ -126,8 +129,8 @@ void scan_set_target()
     BITMAPINFOHEADER bi = {sizeof(bi), fov_w, -fov_h, 1, 32, BI_RGB};
     GetDIBits(hdc, h_bitmap, 0, fov_h, mat.data, (BITMAPINFO*)&bi, DIB_RGB_COLORS);
     
-    // Filter out so only red colored points is present.
-    cv::Mat hsv_ifmg, range_output;
+    // Filter out so only magenta colored points are present.
+    cv::Mat hsv_img, range_output;
     cv:cvtColor(mat, hsv_img, cv::COLOR_BGR2HSV, 0);
     cv::inRange(hsv_img, cv::Scalar(145, 95, 65), cv::Scalar(160 , 255, 200), range_output);
 
@@ -165,8 +168,17 @@ void scan_set_target()
 void scan_set_weapon()
 { 
     int cur_weapon;
-    if(mem_read_chain(&cur_weapon, base_address, _weapon_selection_chain, 8, 4) == 0)
+    uintptr_t addr_cur_weapon;
+    
+    if(mem_chain_addr_resolve(&addr_cur_weapon, base_address, _weapon_selection_chain, 8,
+       NULL) == 0)
+    {
         return;
+    }
+
+    if(mem_read_buffer(&cur_weapon, addr_cur_weapon, sizeof(cur_weapon), NULL) == 0)
+        return;
+
     switch(cur_weapon)
     {
         case 1:

@@ -84,7 +84,9 @@ BOOL __stdcall DllMain(HINSTANCE hModule, DWORD dwReason, LPVOID lpReserved)
 
 int cheat_init()
 {
-	DWORD process_id = find_process_id(_base_executable);
+	DWORD process_id;
+    
+    find_process_id(process_id, _base_executable);
     
     if(process_id == 0)
         return 0;
@@ -96,7 +98,7 @@ int cheat_init()
     if(game_handle == NULL)
         return 0;
     #endif
-    
+
     base_address = get_mdle_begin_addr(process_id, _base_module);
     return 1;
 }
