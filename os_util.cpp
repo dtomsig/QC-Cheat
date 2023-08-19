@@ -148,6 +148,11 @@ int mem_chain_addr_resolve(uintptr_t *addr_buffer, uintptr_t begin_addr, uintptr
 
 // num_bytes is a uintptr_t because uintptr_t can represent the largest memory address. This is
 // also the largest amount of data that can be read.
+
+// h_process is an optional parameter that is used if the cheat is running outside of the process
+// space (i.e. "external cheat"). HANDLE is a windows pointer type. If h_process is NULL,
+// data will be read from the process space in which mem_read_buffer is run (injected cheats like
+// dll injection).
 int mem_read_buffer(void *target_buffer, uintptr_t addr, uintptr_t num_bytes, HANDLE h_process)
 {
     HANDLE cur_process = h_process;

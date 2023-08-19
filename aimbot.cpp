@@ -13,7 +13,7 @@
 #define PI 3.14159265
 
 static bool valid_target, assist_on;
-static cv::Point2i top_lft, target, weapon_ind_pt;                 
+static cv::Point2i top_lft, target;               
 static HBITMAP h_bitmap;
 static HDC hdc, h_screen;
 static HGDIOBJ old_obj;
@@ -74,13 +74,7 @@ int init_aimbot()
     fov_w  = round(scrn_w * FOV_PERCENT_X);
     fov_h  = round(scrn_h * FOV_PERCENT_Y);
     top_lft = cv::Point2f(scrn_w/2 - fov_w/2, scrn_h/2 - fov_h/2);
-
-    // This is the round circle at the bottom right near the ammo. This will be used to determine
-    // what the current weapon is.
-    weapon_ind_pt = cv::Point2i(round((float) scrn_w/1920 * 1860), 
-                                round((float) scrn_h/1080 * 410));
-    
-
+e
     // Initialize contexts.
     h_screen = GetDC(NULL);
     hdc      = CreateCompatibleDC(h_screen);
