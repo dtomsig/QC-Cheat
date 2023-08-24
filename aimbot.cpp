@@ -12,16 +12,18 @@
 #define FOV_PERCENT_Y 0.3
 #define PI 3.14159265
 
+enum weapons {MACHINE_GUN, SHOTGUN, NAIL_GUN, TRIBOLT, ROCKET_LAUNCHER, LIGHTNING_GUN, RAIL_GUN};
+
+
 static bool valid_target, assist_on;
-static cv::Point2i top_lft, target;               
+static cv::Point2i top_lft, target;
+static enum weapons current_weapon;
 static HBITMAP h_bitmap;
 static HDC hdc, h_screen;
 static HGDIOBJ old_obj;
-static int x_1, y_1, x_2, y_2, scrn_w, scrn_h, fov_w, fov_h, weapon_scan_ctr;
+static int x_1, y_1, x_2, y_2, scrn_w, scrn_h, fov_w, fov_h;
 extern HANDLE game_handle;
-enum weapons {MACHINE_GUN, SHOTGUN, NAIL_GUN, TRIBOLT, ROCKET_LAUNCHER, LIGHTNING_GUN, RAIL_GUN};
 extern uintptr_t base_address; 
-static enum weapons current_weapon;
 
 
 void adj_if_firing()
@@ -74,7 +76,7 @@ int init_aimbot()
     fov_w  = round(scrn_w * FOV_PERCENT_X);
     fov_h  = round(scrn_h * FOV_PERCENT_Y);
     top_lft = cv::Point2f(scrn_w/2 - fov_w/2, scrn_h/2 - fov_h/2);
-e
+
     // Initialize contexts.
     h_screen = GetDC(NULL);
     hdc      = CreateCompatibleDC(h_screen);
