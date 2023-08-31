@@ -41,10 +41,6 @@ The current weapon is determined by a pointer chain in offsets.cpp that is curre
 I am currently upgrading the aimbot to use the view matrix instead of mouse_event to lock on target.  My plan is to replace it with the
 rotate_view_screen_offset when I get time.
 
-UPDATE: 08/31/2013
-
-I have replaced move_mouse with rotate_view_screen_offset. I figured out the view matrix for quake champions. I have added a pointer chain in offsets.hpp
-to get to the view matrix.
 <br />
 <br />
 Currently, only the LG/MG works well with the aimbot. The move_mouse function in 
@@ -54,5 +50,10 @@ aimbot.cpp only works well for tracking weapons. Page down must be pressed in or
 If I get time, I will update the aimbot to use the view matrix so flick weapons like rail can be supported. I have had success in editing the view matrix but
 it's a long process. 
 
+<br/> 
 
+# UPDATE: 08/31/2013
+
+I have replaced move_mouse with rotate_view_screen_offset. I figured out the view matrix for quake champions. I have added a pointer chain in offsets.hpp
+to get to the view matrix.
 
