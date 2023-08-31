@@ -9,3 +9,5 @@ int mem_chain_addr_resolve(uintptr_t *addr_buffer, uintptr_t begin_addr, uintptr
                            
 int mem_read_buffer(void *target_buffer, uintptr_t addr, uintptr_t num_bytes, 
                      HANDLE h_process);
+                     
+int mem_write_buffer(void *source_buffer, uintptr_t addr, uintptr_t num_bytes, HANDLE h_process);

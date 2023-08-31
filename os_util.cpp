@@ -166,3 +166,16 @@ int mem_read_buffer(void *target_buffer, uintptr_t addr, uintptr_t num_bytes, HA
     return 1;    
 }
 
+
+int mem_write_buffer(void *source_buffer, uintptr_t addr, uintptr_t num_bytes, HANDLE h_process)
+{
+    HANDLE cur_process = h_process;
+    
+    if(h_process == NULL)
+        cur_process = GetCurrentProcess();
+    
+    if(WriteProcessMemory(cur_process, (LPVOID) addr, source_buffer, num_bytes, 
+       NULL) == false)
+        return 0;
+    return 1;    
+}

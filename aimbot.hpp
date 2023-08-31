@@ -1,6 +1,6 @@
 DWORD WINAPI create_mouse_proc(LPVOID);
 
-void adj_if_firing();
+void adj_siml_if_firing();
 
 void destroy_aimbot();
 

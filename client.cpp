@@ -131,7 +131,7 @@ DWORD __stdcall run_cheat_loop(LPVOID)
             case 0010:
                 scan_set_weapon();
                 scan_set_target();
-                adj_if_firing();
+                adj_siml_if_firing();
                 break;
         }
     }

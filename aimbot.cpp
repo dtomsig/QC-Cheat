@@ -25,35 +25,50 @@ static int x_1, y_1, x_2, y_2, scrn_w, scrn_h, fov_w, fov_h;
 extern HANDLE game_handle;
 extern uintptr_t base_address; 
 
-
-void adj_if_firing()
+// To ensure that weapon firing occurs after camera rotation, a left click is simulated. The fire
+// weapon binding in game must be set to num 2.
+void adj_siml_if_firing()
 {    
     // Process actions when fire button is pressed.   
     if(GetAsyncKeyState(VK_LBUTTON) & 0x8000)
-    {     
-        INPUT mouse_input;
-        INPUT keybd_inputs[2];
-        ZeroMemory(&mouse_input, sizeof(mouse_input));
-        ZeroMemory(keybd_inputs, sizeof(keybd_inputs));    
-        
+    {            
         if(valid_target && assist_on)
         {
             POINT curs_pos;
             GetCursorPos(&curs_pos);
-            move_mouse(target.x, target.y);
+            rotate_view_screen_offset(target.x, target.y);
         }
                 
-        if(current_weapon == SHOTGUN || current_weapon == RAIL_GUN)
-            Sleep(200);
-        
+        //Structure for the keyboard event
+        INPUT ip;
+        //Set up the INPUT structure
+        ip.type = INPUT_KEYBOARD;
+        ip.ki.time = 0;
+        ip.ki.wVk = 0; //We're doing scan codes instead
+        ip.ki.dwExtraInfo = 0;
+        //This let's you do a hardware scan instead of a virtual keypress
+        ip.ki.dwFlags = KEYEVENTF_SCANCODE;
+        ip.ki.wScan = 0x50; //code character to use(p)
+        SendInput(1, &ip, sizeof(INPUT)); // sending the keypress
+        ip.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
+        SendInput(1, &ip, sizeof(INPUT)); // sending the upkeypress
+        cv::Mat im_with_keypoints;
+
         #ifdef IMG_DEBUG
         cv::imshow("range output", range_output);
         cv::imshow("mat", mat);
         cv::waitKey();
         #endif
-    }            
+    }  
 }
 
+
+// Returns 1 if two floats have the same sign. Does not support infinite or NaN floats.
+// Inline is a common optimization technique that is used for small math functions.
+inline int cmp_sign(float a, float b)
+{
+    return a*b >= 0.0f;
+}
 
 void destroy_aimbot()
 {
@@ -95,23 +110,82 @@ void move_mouse(int amt_x, int amt_y)
 }
 
 
+// Rotates the screen by an offset amount, amt_x and amt_y. These are points relative to the center
+// of the screen. An amt_x = 100 and amt_y = -100 would rotate the view matrix to face an object
+// that is 100 pixels above the center of the screen and 100 pixels to the right of the center of
+// the screen. The coordinate system is the coordinate system for a window in Windows where the
+// top left pixel has position (0,0).
+// https://learn.microsoft.com/en-us/windows/win32/gdi/window-coordinate-system
+
 void rotate_view_screen_offset(int amt_x, int amt_y)
 {
-  /*  float cur_pitch_rotation, targ_pitch_rotation, cur_yaw_rotation, targ_yaw_rotation, 
-          cur_pitch_angle;
+    float cur_pitch_angle, cur_yaw_angle, targ_pitch_angle, targ_yaw_angle, view_matrix[4][4];
+    uintptr_t addr_view_matrix;
     
-    cur_pitch_angle = acos(cur_pitch_rotation);
-    cur_yaw_angle = asin(cur_yaw_rotation);
     
-    cur_pitch_rotation = sin(cur_pitch_angle + PI * amt_y / scrn_h * 0.5);
-    cur_yaw_rotation = cos(c*/
- //   if(mem_read_chain(&cur_pitch_rotation, base_address, sizeof(float))
-    //18 is positive cosine of pitch_rotation
-    //44 is negative cosine of pitch_rotation
-    //7 is sin of pitch rotation
-    //10 is sin of pitch rotation
- //   if(mem_read_chain(&cur_weapon, base_address, _weapon_selection_chain, 8, 4) == 0)
-  //      return;
+    if(mem_chain_addr_resolve(&addr_view_matrix, base_address, _view_matrix_chain, 4,
+       NULL) == 0)
+    {
+        return;
+    }
+
+    // View matrix is 16 float values so 16 * sizeof(float) must be read. I elected to allocate 
+    // stack memory so the entire view matrix gets copied. This reduces the amount of write calls
+    // to make the code simpler. The entire view matrix buffer is written instead of specific
+    // offsets.
+    if(mem_read_buffer(view_matrix, addr_view_matrix, sizeof(float) * 16, NULL) == 0)
+        return;        
+
+    // View Matrix Mapping (reviewed view matrix and found it to be the identical
+    // to layout as described in "FPS Camera" below).
+    // https://www.3dgep.com/understanding-the-view-matrix/
+    // The yaw angle is a bit tricky. In order to calculate the yaw angle, both the 
+    // view_matrix[0][0] and view_matrix[0][2] values [cos(yaw_angle) and sin(yaw_angle)] 
+    // must be factored in. This is because yaw angles range from 0 to 360 degrees. Simply
+    // taking the acos of view_matrix[0][0] to find the yaw angle will not work. From 0 to 360 
+    // degrees, the cosine function will have two degree values that will produce the same value. 
+    // E.g. cos(30 degrees) = cos(330 degrees) = 0.86. 
+    // Therefore, the sin of the yaw angle must be factored in as well (view matrix[0][2]).
+    // The exact degree value can be calculated by looking at these two values.
+    // 
+    // Since pitch only ranges from -90 to 90 degrees, taking the asin of the pitch value will
+    // always result in the correct pitch angle.
+    
+    // To find the yaw angle, I first calculate acos(view_matrix[0][0]). 
+    // If the sign of acos(view_matrix[0][0] is different than view_matrix[0][2], then the angle is 
+    // 2PI - acos(view_matrix[0][0]).
+    // Again, this is because there are two possible angles associated with value in
+    // view_matrix[0][0] as yaw angles range from 0 to 360 degrees.
+    
+    // View Matrix:
+    // {                    cos(yaw_angle),                 0,                   -sin(yaw_angle), 0}                  
+    // { sin(yaw_angle) * sin(pitch_angle),  cos(pitch_angle), cos(yaw_angle) * sin(pitch_angle), 0}
+    // { sin(yaw_angle) * cos(pitch_angle), -sin(pitch_angle), cos(pitch_angle) * cos(yaw_angle), 0}
+    // {                         UNCHANGED,         UNCHANGED,                         UNCHANGED, 1}
+    
+    cur_pitch_angle   = -asin(view_matrix[2][1]);
+    cur_yaw_angle     = acos(view_matrix[0][0]);
+   
+    if(cmp_sign(acos(view_matrix[0][0]), -asin(view_matrix[0][2])) == false)
+        cur_yaw_angle = 2*PI - cur_yaw_angle;
+        
+    targ_yaw_angle    = cur_yaw_angle - PI*amt_x/scrn_w;       
+    targ_pitch_angle  = cur_pitch_angle +  PI/2*amt_y/scrn_h; 
+
+    // Write the correct values to the view_matrix. First they are stored in the stack copy. Then, 
+    // the buffer is copied to the game's memory with mem_write_buffer().
+    view_matrix[0][0] = cos(targ_yaw_angle);
+    view_matrix[0][2] = -sin(targ_yaw_angle);
+    view_matrix[1][0] = sin(targ_yaw_angle) * sin(targ_pitch_angle);
+    view_matrix[1][1] = cos(targ_pitch_angle);
+    view_matrix[1][2] = cos(targ_yaw_angle)*sin(targ_pitch_angle);
+    view_matrix[2][0] = sin(targ_yaw_angle)*cos(targ_pitch_angle);
+    view_matrix[2][1] = -sin(targ_pitch_angle);
+    view_matrix[2][2] = cos(targ_pitch_angle)*cos(targ_yaw_angle);
+    
+    // No error checking is done here. That is because it's the last statement and an error
+    // would have no impact.
+    mem_write_buffer(view_matrix, addr_view_matrix, sizeof(float) * 16, NULL);
 }
 
 
@@ -153,6 +227,8 @@ void scan_set_target()
         valid_target = true;
         POINT curs_pos;
         GetCursorPos(&curs_pos);
+        // The coordinate system is the same as the coordinate system for a window in Windows where
+        // the top left is represented by (0,0).
         int targ_x = round((float) total_x / num_pts) - round(fov_w/2.0f);
         int targ_y = round((float) total_y / num_pts) - round(fov_h/2.0f);
         
@@ -208,7 +284,4 @@ void scan_set_weapon()
    }
 }
 
-
-
- 
 

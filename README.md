@@ -29,6 +29,8 @@ and I'm not here to provide a cheating service.
 
 3. After compiling, a inject.dll will appear in the build folder. Use extreme injector (use the close program after injection option to avoid QC anti-cheat).
 
+4. Fire key must be set to num2 in game. 
+
 <br />
 Currently, the wallhack uses Direct X hooking. I got the source from unknowncheats (nSeven) and have upgraded it (chams.cpp). The aimbot is color hitscan using opencv.
 Currently, the aimbot uses an average to find a target.  So it really only works well for one target. I have tested blob detection. That works better and I will 
@@ -38,6 +40,11 @@ incorporate the code at a later point. It can handle multiple targets on screen.
 The current weapon is determined by a pointer chain in offsets.cpp that is current as of 08/15/2013. This pointer chain may not work at a later point in time.
 I am currently upgrading the aimbot to use the view matrix instead of mouse_event to lock on target.  My plan is to replace it with the
 rotate_view_screen_offset when I get time.
+
+UPDATE: 08/31/2013
+
+I have replaced move_mouse with rotate_view_screen_offset. I figured out the view matrix for quake champions. I have added a pointer chain in offsets.hpp
+to get to the view matrix.
 <br />
 <br />
 Currently, only the LG/MG works well with the aimbot. The move_mouse function in 
