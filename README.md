@@ -31,6 +31,8 @@ and I'm not here to provide a cheating service.
 
 4. Fire key must be set to num2 in game. 
 
+5. Game must be in fullscreen mode. FOV must be set to 120 and resolution must be 16:9. I only tested the cheat on 1920x1080 resolution.
+
 <br />
 Currently, the wallhack uses Direct X hooking. I got the source from unknowncheats (nSeven) and have upgraded it (chams.cpp). The aimbot is color hitscan using opencv.
 Currently, the aimbot uses an average to find a target.  So it really only works well for one target. I have tested blob detection. That works better and I will 
@@ -56,4 +58,6 @@ it's a long process.
 
 I have replaced move_mouse with rotate_view_screen_offset. I figured out the view matrix for quake champions. I have added a pointer chain in offsets.hpp
 to get to the view matrix.
+
+If I get more time, I will look at adding a pointer chain to get vertical and horizontal FOV to support those FOV's.
 

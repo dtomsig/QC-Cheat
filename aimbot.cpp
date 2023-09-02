@@ -119,7 +119,8 @@ void move_mouse(int amt_x, int amt_y)
 
 void rotate_view_screen_offset(int amt_x, int amt_y)
 {
-    float cur_pitch_angle, cur_yaw_angle, targ_pitch_angle, targ_yaw_angle, view_matrix[4][4];
+    float cur_pitch_angle, cur_yaw_angle, fov_horz, fov_vert, targ_pitch_angle, targ_yaw_angle, 
+          view_matrix[4][4];
     uintptr_t addr_view_matrix;
     
     
@@ -169,8 +170,8 @@ void rotate_view_screen_offset(int amt_x, int amt_y)
     if(cmp_sign(acos(view_matrix[0][0]), -asin(view_matrix[0][2])) == false)
         cur_yaw_angle = 2*PI - cur_yaw_angle;
         
-    targ_yaw_angle    = cur_yaw_angle - PI*amt_x/scrn_w;       
-    targ_pitch_angle  = cur_pitch_angle +  PI/2*amt_y/scrn_h; 
+    targ_yaw_angle    = cur_yaw_angle - (2*PI/360.0f)*(120.0f)*amt_x/scrn_w;       
+    targ_pitch_angle  = cur_pitch_angle + (2*PI/360.0f)*(89.0f)*amt_y/scrn_h; 
 
     // Write the correct values to the view_matrix. First they are stored in the stack copy. Then, 
     // the buffer is copied to the game's memory with mem_write_buffer().
