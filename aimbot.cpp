@@ -14,7 +14,6 @@
 
 enum weapons {MACHINE_GUN, SHOTGUN, NAIL_GUN, TRIBOLT, ROCKET_LAUNCHER, LIGHTNING_GUN, RAIL_GUN};
 
-
 static bool valid_target, assist_on;
 static cv::Point2i top_lft, target;
 static enum weapons current_weapon;
@@ -24,6 +23,7 @@ static HGDIOBJ old_obj;
 static int x_1, y_1, x_2, y_2, scrn_w, scrn_h, fov_w, fov_h;
 extern HANDLE game_handle;
 extern uintptr_t base_address; 
+
 
 // To ensure that weapon firing occurs after camera rotation, a left click is simulated. The fire
 // weapon binding in game must be set to num 2.
@@ -36,7 +36,10 @@ void adj_siml_if_firing()
         {
             POINT curs_pos;
             GetCursorPos(&curs_pos);
-            rotate_view_screen_offset(target.x, target.y);
+            if(current_weapon == MACHINE_GUN || current_weapon == LIGHTNING_GUN)
+                mouse_event(MOUSEEVENTF_MOVE, target.x, target.y, NULL, NULL);
+            else
+                rotate_view_screen_offset(target.x, target.y);
         }
                 
         //Structure for the keyboard event
@@ -54,11 +57,6 @@ void adj_siml_if_firing()
         SendInput(1, &ip, sizeof(INPUT)); // sending the upkeypress
         cv::Mat im_with_keypoints;
 
-        #ifdef IMG_DEBUG
-        cv::imshow("range output", range_output);
-        cv::imshow("mat", mat);
-        cv::waitKey();
-        #endif
     }  
 }
 
@@ -164,8 +162,8 @@ void rotate_view_screen_offset(int amt_x, int amt_y)
     // { sin(yaw_angle) * cos(pitch_angle), -sin(pitch_angle), cos(pitch_angle) * cos(yaw_angle), 0}
     // {                         UNCHANGED,         UNCHANGED,                         UNCHANGED, 1}
     
-    cur_pitch_angle   = -asin(view_matrix[2][1]);
-    cur_yaw_angle     = acos(view_matrix[0][0]);
+    cur_pitch_angle   = -asinf(view_matrix[2][1]);
+    cur_yaw_angle     = acosf(view_matrix[0][0]);
    
     if(cmp_sign(acos(view_matrix[0][0]), -asin(view_matrix[0][2])) == false)
         cur_yaw_angle = 2*PI - cur_yaw_angle;
@@ -175,14 +173,14 @@ void rotate_view_screen_offset(int amt_x, int amt_y)
 
     // Write the correct values to the view_matrix. First they are stored in the stack copy. Then, 
     // the buffer is copied to the game's memory with mem_write_buffer().
-    view_matrix[0][0] = cos(targ_yaw_angle);
-    view_matrix[0][2] = -sin(targ_yaw_angle);
-    view_matrix[1][0] = sin(targ_yaw_angle) * sin(targ_pitch_angle);
-    view_matrix[1][1] = cos(targ_pitch_angle);
-    view_matrix[1][2] = cos(targ_yaw_angle)*sin(targ_pitch_angle);
-    view_matrix[2][0] = sin(targ_yaw_angle)*cos(targ_pitch_angle);
-    view_matrix[2][1] = -sin(targ_pitch_angle);
-    view_matrix[2][2] = cos(targ_pitch_angle)*cos(targ_yaw_angle);
+    view_matrix[0][0] = cosf(targ_yaw_angle);
+    view_matrix[0][2] = -sinf(targ_yaw_angle);
+    view_matrix[1][0] = sinf(targ_yaw_angle) * sinf(targ_pitch_angle);
+    view_matrix[1][1] = cosf(targ_pitch_angle);
+    view_matrix[1][2] = cosf(targ_yaw_angle)*sinf(targ_pitch_angle);
+    view_matrix[2][0] = sinf(targ_yaw_angle)*cosf(targ_pitch_angle);
+    view_matrix[2][1] = -sinf(targ_pitch_angle);
+    view_matrix[2][2] = cosf(targ_pitch_angle)*cosf(targ_yaw_angle);
     
     // No error checking is done here. That is because it's the last statement and an error
     // would have no impact.
@@ -235,6 +233,12 @@ void scan_set_target()
         
         target = cv::Point2i(targ_x, targ_y);  
     }
+    
+    #ifdef IMG_DEBUG
+        cv::imshow("range output", range_output);
+        cv::imshow("mat", mat);
+        cv::waitKey();
+    #endif
 }
 
 
@@ -282,7 +286,5 @@ void scan_set_weapon()
             current_weapon = RAIL_GUN;
             assist_on = true;
             break;                               
-   }
+    }
 }
-
-
