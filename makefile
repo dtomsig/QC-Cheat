@@ -22,19 +22,13 @@ dll: aimbot chams client library offsets os_util
 #### OBJECTS FOR DLL CHEAT####
 aimbot:
     cl /c aimbot.cpp /EHsc /nologo /I .\include $(DEFINE_FLAG)
-    
+
 chams:
     cl /c chams.cpp /EHsc /nologo /I .\include
-    
+
 client:
     cl /c client.cpp /EHsc /nologo /I .\include $(DEFINE_FLAG)
-    
-esp:
-    cl /c esp.cpp /EHsc /nologo
-	
-gui:
-    cl /c gui.cpp /EHsc /nologo /I .\include
-    
+
 library:
     cl /Fo.\lib\imgui\ /c include\imgui\*.cpp /nologo 
     lib .\lib\imgui\*.obj /out:.\lib\imgui\imgui.lib

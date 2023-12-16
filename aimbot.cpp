@@ -22,14 +22,14 @@ static HDC hdc, h_screen;
 static HGDIOBJ old_obj;
 static int x_1, y_1, x_2, y_2, scrn_w, scrn_h, fov_w, fov_h;
 extern HANDLE game_handle;
-extern uintptr_t base_address; 
+extern uintptr_t base_address;
 
 
 // To ensure that weapon firing occurs after camera rotation, a left click is simulated. The fire
 // weapon binding in game must be set to num 2.
 void adj_siml_if_firing()
 {    
-    // Process actions when fire button is pressed.   
+    // Process actions when fire button is pressed.
     if(GetAsyncKeyState(VK_LBUTTON) & 0x8000)
     {            
         if(valid_target && assist_on)
@@ -41,7 +41,7 @@ void adj_siml_if_firing()
             else
                 rotate_view_screen_offset(target.x, target.y);
         }
-                
+
         //Structure for the keyboard event
         INPUT ip;
         //Set up the INPUT structure
@@ -56,8 +56,7 @@ void adj_siml_if_firing()
         ip.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
         SendInput(1, &ip, sizeof(INPUT)); // sending the upkeypress
         cv::Mat im_with_keypoints;
-
-    }  
+    }
 }
 
 
@@ -68,6 +67,7 @@ inline int cmp_sign(float a, float b)
     return a*b >= 0.0f;
 }
 
+
 void destroy_aimbot()
 {
     SelectObject(hdc, old_obj);
@@ -77,7 +77,7 @@ void destroy_aimbot()
 }
 
 
-int init_aimbot()
+void init_aimbot()
 {
     // Get screen dimensions.
     x_1 = GetSystemMetrics(SM_XVIRTUALSCREEN);
@@ -95,10 +95,6 @@ int init_aimbot()
     hdc      = CreateCompatibleDC(h_screen);
     h_bitmap = CreateCompatibleBitmap(h_screen, fov_w, fov_h);
     old_obj  = SelectObject(hdc, h_bitmap);
-    
-    if(h_screen == NULL || hdc == NULL || h_bitmap == NULL || old_obj == NULL)
-        return 1;
-    return 0;
 }
 
 
@@ -114,7 +110,6 @@ void move_mouse(int amt_x, int amt_y)
 // the screen. The coordinate system is the coordinate system for a window in Windows where the
 // top left pixel has position (0,0).
 // https://learn.microsoft.com/en-us/windows/win32/gdi/window-coordinate-system
-
 void rotate_view_screen_offset(int amt_x, int amt_y)
 {
     float cur_pitch_angle, cur_yaw_angle, fov_horz, fov_vert, targ_pitch_angle, targ_yaw_angle, 
@@ -133,7 +128,7 @@ void rotate_view_screen_offset(int amt_x, int amt_y)
     // to make the code simpler. The entire view matrix buffer is written instead of specific
     // offsets.
     if(mem_read_buffer(view_matrix, addr_view_matrix, sizeof(float) * 16, NULL) == 0)
-        return;        
+        return;
 
     // View Matrix Mapping (reviewed view matrix and found it to be the identical
     // to layout as described in "FPS Camera" below).
@@ -157,11 +152,11 @@ void rotate_view_screen_offset(int amt_x, int amt_y)
     // view_matrix[0][0] as yaw angles range from 0 to 360 degrees.
     
     // View Matrix:
-    // {                    cos(yaw_angle),                 0,                   -sin(yaw_angle), 0}                  
+    // {                    cos(yaw_angle),                 0,                   -sin(yaw_angle), 0}
     // { sin(yaw_angle) * sin(pitch_angle),  cos(pitch_angle), cos(yaw_angle) * sin(pitch_angle), 0}
     // { sin(yaw_angle) * cos(pitch_angle), -sin(pitch_angle), cos(pitch_angle) * cos(yaw_angle), 0}
     // {                         UNCHANGED,         UNCHANGED,                         UNCHANGED, 1}
-    
+
     cur_pitch_angle   = -asinf(view_matrix[2][1]);
     cur_yaw_angle     = acosf(view_matrix[0][0]);
    
@@ -181,7 +176,7 @@ void rotate_view_screen_offset(int amt_x, int amt_y)
     view_matrix[2][0] = sinf(targ_yaw_angle)*cosf(targ_pitch_angle);
     view_matrix[2][1] = -sinf(targ_pitch_angle);
     view_matrix[2][2] = cosf(targ_pitch_angle)*cosf(targ_yaw_angle);
-    
+
     // No error checking is done here. That is because it's the last statement and an error
     // would have no impact.
     mem_write_buffer(view_matrix, addr_view_matrix, sizeof(float) * 16, NULL);
@@ -197,7 +192,7 @@ void scan_set_target()
 
     BITMAPINFOHEADER bi = {sizeof(bi), fov_w, -fov_h, 1, 32, BI_RGB};
     GetDIBits(hdc, h_bitmap, 0, fov_h, mat.data, (BITMAPINFO*)&bi, DIB_RGB_COLORS);
-    
+
     // Filter out so only magenta colored points are present.
     cv::Mat hsv_img, range_output;
     cv:cvtColor(mat, hsv_img, cv::COLOR_BGR2HSV, 0);
@@ -206,10 +201,13 @@ void scan_set_target()
     // Find the average of all points that match the color model in order to calculate a target.
     std::vector<cv::Point> trg_points;
     findNonZero(range_output, trg_points);
-    
+
     // It is safe to use a 32 bit int for number of points. 4294967296 (2^32) is much larger than 
-    // the number of pixels that montiors have. Similarily, total_x and total_y are comfortable
-    // sizes to represent the total x and y coordinate value of all pixels in a monitor.
+    // the number of pixels that montiors have. I used uint64_t for the total_x and total_y because
+    // in theory a monitor could be 128 million x 1 pixels or 1 x 128 million pixels in size. The
+    // maximum number of pixels that can be in a Windows monitor is 128 million. To sum all of the
+    // coordinates for this hypothetical monitor you would add (0 + 1 + 2 + 3 .... 128 milion - 1).
+    // This is smaller than 2^64 but larger than 2^32.
     uint32_t num_pts = trg_points.size();
     uint64_t total_x = 0, total_y = 0;
 
@@ -218,7 +216,7 @@ void scan_set_target()
         total_x += trg_points.at(i).x;
         total_y += trg_points.at(i).y;
     }
-        
+
     if(num_pts == 0)
         valid_target = false;
     else
@@ -233,7 +231,7 @@ void scan_set_target()
         
         target = cv::Point2i(targ_x, targ_y);  
     }
-    
+
     #ifdef IMG_DEBUG
         cv::imshow("range output", range_output);
         cv::imshow("mat", mat);
@@ -243,10 +241,10 @@ void scan_set_target()
 
 
 void scan_set_weapon()
-{ 
+{
     int cur_weapon;
     uintptr_t addr_cur_weapon;
-    
+
     if(mem_chain_addr_resolve(&addr_cur_weapon, base_address, _weapon_selection_chain, 8,
        NULL) == 0)
     {
@@ -285,6 +283,6 @@ void scan_set_weapon()
         case 7:
             current_weapon = RAIL_GUN;
             assist_on = true;
-            break;                               
+            break;
     }
 }

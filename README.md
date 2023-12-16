@@ -21,9 +21,7 @@ and I'm not here to provide a cheating service.
 # How to Run:
 
 1. See the makefile. I used the nmake program on windows to build the cheat. You should install the appropriate
-   cl.exe or Microsoft Compiler program. Just run the command "nmake". I've got a conditional compilation setup that can build to
-   a dll or .exe version. The DLL version (command nmake dll_cheat) is currently supported. You'll notice I've got esp.cpp, draw.cpp, render.cpp, and gui.cpp.
-   They're not really used for this project currently. They're all files that I would want to draw an external overlay (haven't really gotten there yet).
+   cl.exe or Microsoft Compiler program. Just run the command "nmake". 
 
 2. opencv_world740.dll must be added to system path in order to run.
 
@@ -33,26 +31,28 @@ and I'm not here to provide a cheating service.
 
 5. Game must be in fullscreen mode. FOV must be set to 120 and resolution must be 16:9. I only tested the cheat on 1920x1080 resolution.
 
-<br />
+6. Set player models to magenta and remove the player arrow indicator above the model.
+
+<br/>
 Currently, the wallhack uses Direct X hooking. I got the source from unknowncheats (nSeven) and have upgraded it (chams.cpp). The aimbot is color hitscan using opencv.
 Currently, the aimbot uses an average to find a target.  So it really only works well for one target. I have tested blob detection. That works better and I will 
 incorporate the code at a later point. It can handle multiple targets on screen.
-<br />
-<br />
+<br/>
+<br/>
 The current weapon is determined by a pointer chain in offsets.cpp that is current as of 08/15/2013. This pointer chain may not work at a later point in time.
 I am currently upgrading the aimbot to use the view matrix instead of mouse_event to lock on target.  My plan is to replace it with the
 rotate_view_screen_offset when I get time.
 
-<br />
-<br />
+<br/>
+<br/>
 Currently, only the LG/MG works well with the aimbot. The move_mouse function in 
 aimbot.cpp only works well for tracking weapons. Page down must be pressed in order to toggle the aimbot. 
-<br />
-<br />
+<br/>
+<br/>
 If I get time, I will update the aimbot to use the view matrix so flick weapons like rail can be supported. I have had success in editing the view matrix but
 it's a long process. 
 
-<br/> 
+<br/>
 
 # UPDATE: 08/31/2013
 

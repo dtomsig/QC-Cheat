@@ -4,7 +4,7 @@ void adj_siml_if_firing();
 
 void destroy_aimbot();
 
-int init_aimbot();
+void init_aimbot();
 
 void move_mouse(int amt_x, int amt_y);
 
