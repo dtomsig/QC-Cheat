@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cmath>
 #include <math.h>
 #include <vector>
 #include <windows.h>
@@ -60,12 +61,13 @@ void adj_siml_if_firing()
 }
 
 
-// Returns 1 if two floats have the same sign. Does not support infinite or NaN floats.
+// Returns 1 if two floats have the same sign, otherwise return 0.
 // Inline is a common optimization technique that is used for small math functions.
 inline int cmp_sign(float a, float b)
 {
-    return a*b >= 0.0f;
-}
+    return std::signbit(a)  == std::signbit(b);   //std::signbit() will return true if positive,
+}                                                 //false if negative.
+
 
 
 void destroy_aimbot()
