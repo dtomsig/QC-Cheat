@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cmath>
 #include <math.h>
 #include <vector>
 #include <windows.h>
@@ -25,47 +26,56 @@ extern HANDLE game_handle;
 extern uintptr_t base_address;
 
 
-// To ensure that weapon firing occurs after camera rotation, a left click is simulated. The fire
-// weapon binding in game must be set to num 2.
+// When the left mouse button is held down, move the cursor to the target. move_mouse() works
+// better for tracking weapons while rotate_view_screen_offset() works better for flick weapons.
+// After moving to target, a "num 2" key press is simulated. The "fire weapon" binding in game must
+// be set to num 2.
 void adj_siml_if_firing()
-{    
-    // Process actions when fire button is pressed.
+{
+    // Process actions when left mouse button is held down.
     if(GetAsyncKeyState(VK_LBUTTON) & 0x8000)
-    {            
+    {
         if(valid_target && assist_on)
         {
             POINT curs_pos;
             GetCursorPos(&curs_pos);
             if(current_weapon == MACHINE_GUN || current_weapon == LIGHTNING_GUN)
-                mouse_event(MOUSEEVENTF_MOVE, target.x, target.y, NULL, NULL);
+                move_mouse(target.x, target.y);
             else
                 rotate_view_screen_offset(target.x, target.y);
         }
 
-        //Structure for the keyboard event
+        // Structure for the keyboard event.
         INPUT ip;
-        //Set up the INPUT structure
+
+        // Set up the INPUT structure.
         ip.type = INPUT_KEYBOARD;
         ip.ki.time = 0;
-        ip.ki.wVk = 0; //We're doing scan codes instead
+        // Indicate that scan codes are used.
+        ip.ki.wVk = 0; 
         ip.ki.dwExtraInfo = 0;
-        //This let's you do a hardware scan instead of a virtual keypress
+        // Sets up a hardware scan instead of a virtual keypress.
         ip.ki.dwFlags = KEYEVENTF_SCANCODE;
-        ip.ki.wScan = 0x50; //code character to use(p)
-        SendInput(1, &ip, sizeof(INPUT)); // sending the keypress
+        // Set code character to be num 2.
+        ip.ki.wScan = 0x50; 
+
+        // Send key press down.
+        SendInput(1, &ip, sizeof(INPUT)); 
         ip.ki.dwFlags = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
-        SendInput(1, &ip, sizeof(INPUT)); // sending the upkeypress
-        cv::Mat im_with_keypoints;
+
+        // Send key press up.
+        SendInput(1, &ip, sizeof(INPUT)); 
     }
 }
 
 
-// Returns 1 if two floats have the same sign. Does not support infinite or NaN floats.
+// Returns 1 if two floats have the same sign, otherwise return 0.
 // Inline is a common optimization technique that is used for small math functions.
 inline int cmp_sign(float a, float b)
 {
-    return a*b >= 0.0f;
-}
+    return std::signbit(a)  == std::signbit(b);   //std::signbit() will return true if positive,
+}                                                 //false if negative.
+
 
 
 void destroy_aimbot()

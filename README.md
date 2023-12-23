@@ -34,9 +34,9 @@ and I'm not here to provide a cheating service.
 6. Set player models to magenta and remove the player arrow indicator above the model.
 
 <br/>
-Currently, the wallhack uses Direct X hooking. I got the source from unknowncheats (nSeven) and have upgraded it (chams.cpp). The aimbot is color hitscan using opencv.
+Currently, the wallhack uses Direct X hooking. I got the source from unknowncheats (nSeven) and have upgraded it (chams.cpp). The aimbot is color hitscan using OpenCV.
 Currently, the aimbot uses an average to find a target.  So it really only works well for one target. I have tested blob detection. That works better and I will 
-incorporate the code at a later point. It can handle multiple targets on screen.
+incorporate the code at a later point. It can handle multiple targets on the screen.
 <br/>
 <br/>
 The current weapon is determined by a pointer chain in offsets.cpp that is current as of 08/15/2013. This pointer chain may not work at a later point in time.
@@ -57,7 +57,7 @@ it's a long process.
 # UPDATE: 08/31/2013
 
 I have replaced move_mouse with rotate_view_screen_offset. I figured out the view matrix for quake champions. I have added a pointer chain in offsets.hpp
-to get to the view matrix.
+to get to the view matrix. Flick weapons like the rail gun can now be used.
 
 If I get more time, I will look at adding a pointer chain to get vertical and horizontal FOV to support those FOV's.
 
